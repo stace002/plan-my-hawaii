@@ -319,7 +319,7 @@ Write this like a friendly local texting a friend. Organize the response clearly
 
         console.log('Sending to edge function...');
         fetch(
-          'https://scjiidyuvywtgzihuyzy.supabase.co/functions/v1/generate-itinerary',
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-itinerary`,
           {
             method: 'POST',
             headers: {

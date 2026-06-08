@@ -293,7 +293,7 @@ function AdminPage() {
         throw new Error(updateError.message);
       }
 
-      const sendRes = await fetch('https://scjiidyuvywtgzihuyzy.supabase.co/functions/v1/send_itinerary', {
+      const sendRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send_itinerary`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
