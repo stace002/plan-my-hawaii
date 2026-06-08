@@ -466,7 +466,7 @@ Write this like a friendly local texting a friend. Organize the response clearly
 
           {step === 3 && (
             <>
-              <div className="pmh-quiz-question">Which islands are you visiting?</div>
+              <div className="pmh-quiz-question">Which island(s) are you visiting?</div>
               <div className="pmh-multi-toggle">
                 {ISLAND_OPTIONS.map((island) => (
                   <button
