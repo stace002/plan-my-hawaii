@@ -916,6 +916,210 @@ button {
   border-top: 1px solid var(--green-border);
 }
 
+.pmh-recommendations-section {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--green-border);
+}
+
+.pmh-recommendations-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.pmh-recommendation-form {
+  margin-bottom: 1.5rem;
+}
+
+.pmh-field-with-action {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: stretch;
+}
+
+.pmh-field-with-action .pmh-input {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.pmh-button-autofill {
+  flex: 0 0 auto;
+  padding: 0.65rem 1rem;
+  font-size: 0.88rem;
+}
+
+.pmh-button-autofill:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.pmh-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(13, 124, 92, 0.25);
+  border-top-color: var(--green-mid);
+  border-radius: 50%;
+  animation: pmh-spin 0.7s linear infinite;
+}
+
+@keyframes pmh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pmh-checkbox-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.pmh-checkbox-fieldset legend {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 0.45rem;
+}
+
+.pmh-checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 1rem;
+}
+
+.pmh-checkbox-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+.pmh-checkbox-item input {
+  accent-color: var(--green-mid);
+}
+
+.pmh-switch-stack {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.pmh-switch-stack .pmh-switch-row {
+  margin-top: 0;
+}
+
+.pmh-recommendation-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.25rem;
+}
+
+.pmh-field-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.pmh-recommendations-island-group {
+  margin-top: 1.75rem;
+}
+
+.pmh-recommendations-island-title {
+  font-family: 'Lora', 'Times New Roman', serif;
+  font-size: 1.25rem;
+  color: var(--green-dark);
+  margin: 0 0 0.85rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 2px solid var(--green-mid);
+}
+
+.pmh-recommendations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.pmh-recommendation-card {
+  border-radius: 16px;
+  border: 1px solid var(--green-border);
+  background: linear-gradient(135deg, #f5fbf8, #ffffff);
+  padding: 1.15rem 1.2rem 1.2rem;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.pmh-recommendation-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.pmh-recommendation-name {
+  margin: 0;
+  font-family: 'Lora', 'Times New Roman', serif;
+  font-size: 1.05rem;
+  color: var(--green-dark);
+}
+
+.pmh-recommendation-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.pmh-badge-inactive {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  background: rgba(148, 163, 184, 0.18);
+  color: #64748b;
+}
+
+.pmh-recommendation-note {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--text-main);
+}
+
+.pmh-recommendation-link {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--green-mid);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.pmh-recommendation-link:hover {
+  color: var(--green-dark);
+}
+
+.pmh-recommendation-priority {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.pmh-recommendation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+}
+
 .pmh-pending-grid {
   display: grid;
   gap: 1.25rem;

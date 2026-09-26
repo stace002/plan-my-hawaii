@@ -55,6 +55,42 @@ function formatGroupDescription(form) {
   return `Family of ${size} with children ages ${agesText}`;
 }
 
+function formatRecommendationsSection(recommendations, selectedIslands) {
+  if (!recommendations?.length) return '';
+
+  const grouped = {};
+  recommendations.forEach((rec) => {
+    const island = rec.island || 'Other';
+    const category = rec.category || 'Other';
+    if (!grouped[island]) grouped[island] = {};
+    if (!grouped[island][category]) grouped[island][category] = [];
+    grouped[island][category].push(rec);
+  });
+
+  const lines = [
+    "PLAN MY HAWAII'S LOCAL RECOMMENDATIONS (always prioritize these when relevant):",
+  ];
+
+  const islandsToShow = selectedIslands.length
+    ? ISLAND_OPTIONS.filter((island) => selectedIslands.includes(island))
+    : Object.keys(grouped);
+
+  islandsToShow.forEach((island) => {
+    const categories = grouped[island];
+    if (!categories) return;
+
+    Object.entries(categories).forEach(([category, recs]) => {
+      lines.push(`${island} - ${category}:`);
+      recs.forEach((rec) => {
+        const details = [rec.my_note, rec.google_maps_url].filter(Boolean).join(' ');
+        lines.push(`- ${rec.name}: ${details}`.trim());
+      });
+    });
+  });
+
+  return lines.length > 1 ? lines.join('\n') : '';
+}
+
 function QuizPage() {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
@@ -272,15 +308,33 @@ function QuizPage() {
     [rawResult],
   );
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     console.log('Submit started', form);
     setError(null);
+
+    let recommendationsSection = '';
+    if (form.islands.length > 0) {
+      const { data, error } = await supabase
+        .from('recommendations')
+        .select('name, island, category, my_note, google_maps_url')
+        .eq('active', true)
+        .in('island', form.islands)
+        .order('island', { ascending: true })
+        .order('category', { ascending: true });
+
+      if (error) {
+        console.log('Recommendations fetch error:', error);
+      } else {
+        recommendationsSection = formatRecommendationsSection(data ?? [], form.islands);
+      }
+    }
 
     const prompt = `
 You are a knowledgeable local friend helping plan a Hawaii trip.
 
 Please create a warm, specific, opinionated, day-by-day itinerary that feels like it was written by someone who actually lives on the islands. Write in a warm, friendly tone — like a well-traveled friend who knows the islands really well. Casual but not overly local slang. Helpful and specific without being a tour brochure. Include hidden gems, honest takes on what to skip, realistic driving times, and a good balance of activity and rest. 
 Always prioritize locally owned businesses, restaurants, and tours over chains and corporate operators. Never recommend Applebee's, Outback, or any mainland chain that happens to be in Hawaii. If a local option exists, that's the only option worth mentioning. When recommending tours, always choose small local operators over large bus tour companies.
+${recommendationsSection ? `\n${recommendationsSection}\n` : ''}
 Plan a maximum of 7 days. If the trip is longer than 7 days, plan the first 7 days only and end with a friendly note that says "For the rest of your trip, come back to Plan My Hawaii and we'll plan the next leg for you! 🌺"
 
 Trip details:
@@ -324,7 +378,7 @@ Write this like a friendly local texting a friend. Organize the response clearly
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjamlpZHl1dnl3dGd6aWh1eXp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyODU3NzMsImV4cCI6MjA5NTg2MTc3M30.DHVNtjqDaCMY-1P1H04TKXcyMiF3gtIxnTuTWAh5OK0`,
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
             },
             body: JSON.stringify({ prompt, email, tripDetails }),
           },
