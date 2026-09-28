@@ -45,7 +45,7 @@ const VIBE_OPTIONS = [
 ];
 
 const RECOMMENDATION_SELECT =
-  'id, name, island, category, my_note, google_maps_url, priority, active, description, website_url, affiliate_url, affiliate_network, commission_rate, phone, neighborhood, kid_friendly, budget_level, vibes, photos, featured, pmh_approved';
+  'id, name, island, category, my_note, google_maps_url, priority, active, description, website_url, affiliate_url, affiliate_network, commission_rate, phone, neighborhood, kid_friendly, budget_level, vibes, photos, featured, rainy_day, pmh_approved';
 
 const EMPTY_RECOMMENDATION_FORM = {
   name: '',
@@ -67,6 +67,7 @@ const EMPTY_RECOMMENDATION_FORM = {
   vibes: [],
   photos: '',
   featured: false,
+  rainy_day: false,
   pmh_approved: false,
 };
 
@@ -413,6 +414,7 @@ function AdminPage() {
       vibes: normalizeVibes(rec.vibes),
       photos: formatPhotosInput(rec.photos),
       featured: !!rec.featured,
+      rainy_day: !!rec.rainy_day,
       pmh_approved: !!rec.pmh_approved,
     });
     setShowRecommendationForm(true);
@@ -446,6 +448,7 @@ function AdminPage() {
       vibes: normalizeVibes(recommendationForm.vibes),
       photos: parsePhotosInput(recommendationForm.photos),
       featured: recommendationForm.featured,
+      rainy_day: recommendationForm.rainy_day,
       pmh_approved: recommendationForm.pmh_approved,
     };
 
@@ -1331,6 +1334,20 @@ function AdminPage() {
                       setRecommendationForm((prev) => ({
                         ...prev,
                         featured: e.target.checked,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="pmh-switch-row">
+                  <label htmlFor="rec-rainy-day">Rainy Day Activity</label>
+                  <input
+                    id="rec-rainy-day"
+                    type="checkbox"
+                    checked={recommendationForm.rainy_day}
+                    onChange={(e) =>
+                      setRecommendationForm((prev) => ({
+                        ...prev,
+                        rainy_day: e.target.checked,
                       }))
                     }
                   />
