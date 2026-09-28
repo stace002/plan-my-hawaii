@@ -11,6 +11,17 @@ const CATEGORIES = [
   'Getting Around',
 ];
 
+const RECOMMENDATION_CATEGORIES = [
+  'Restaurants & Food',
+  'Beaches',
+  'Hikes & Trails',
+  'Ocean & Water',
+  'Experiences',
+  'Hidden Gems',
+  'Where to Stay',
+  'Getting Around',
+];
+
 const ISLANDS = ['Oahu', 'Maui', 'Big Island', 'Kauai'];
 
 const AFFILIATE_NETWORKS = [
@@ -1069,7 +1080,7 @@ function AdminPage() {
                     required
                   >
                     <option value="">Select a category</option>
-                    {CATEGORIES.map((cat) => (
+                    {RECOMMENDATION_CATEGORIES.map((cat) => (
                       <option key={cat} value={cat}>
                         {cat}
                       </option>
