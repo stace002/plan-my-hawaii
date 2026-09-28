@@ -6,6 +6,7 @@ const CATEGORIES = [
   'Beaches',
   'Hikes & Trails',
   'Ocean & Water',
+  'Experiences',
   'Hidden Gems',
   'Where to Stay',
   'Getting Around',
