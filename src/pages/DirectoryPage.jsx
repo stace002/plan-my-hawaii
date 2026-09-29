@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient.js';
+import { useTripBuilder } from '../components/TripBuilder.jsx';
+import TripBuilder from '../components/TripBuilder.jsx';
 
 const ISLANDS = ['Oahu', 'Maui', 'Big Island', 'Kauai'];
 
@@ -172,6 +174,7 @@ function DirectoryPage() {
     }));
   };
 
+  const { addToTrip, isInTrip, removeFromTrip } = useTripBuilder();
   const hasActiveFilters =
     Boolean(filters.island) ||
     Boolean(filters.category) ||
@@ -182,7 +185,7 @@ function DirectoryPage() {
     filters.vibes.length > 0;
 
   return (
-    <div className="pmh-container">
+    <div className="pmh-container pmh-directory-page">
       <header className="pmh-directory-hero">
         <div className="pmh-pill">
           <span className="pmh-pill-dot" />
@@ -446,6 +449,23 @@ function DirectoryPage() {
                           )}
                         </div>
                       )}
+                      {isInTrip(listing.id) ? (
+                        <button
+                          type="button"
+                          className="pmh-button-primary pmh-directory-trip-btn"
+                          onClick={() => removeFromTrip(listing.id)}
+                        >
+                          ✓ Added to Trip
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="pmh-button-outline pmh-directory-trip-btn"
+                          onClick={() => addToTrip(listing)}
+                        >
+                          + Add to My Trip
+                        </button>
+                      )}
                     </div>
                   </article>
                 );
@@ -454,6 +474,7 @@ function DirectoryPage() {
           )}
         </>
       )}
+      <TripBuilder />
     </div>
   );
 }

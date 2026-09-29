@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient.js';
 
 const ISLAND_OPTIONS = ['Oahu', 'Maui', 'Big Island', 'Kauai'];
@@ -91,11 +92,45 @@ function formatRecommendationsSection(recommendations, selectedIslands) {
   return lines.length > 1 ? lines.join('\n') : '';
 }
 
+const TRIP_SELECTIONS_KEY = 'pmh_trip_selections';
+
+function readTripSelections(locationState) {
+  const fromState = locationState?.tripSelections;
+  if (Array.isArray(fromState) && fromState.length > 0) {
+    return fromState;
+  }
+
+  try {
+    const parsed = JSON.parse(localStorage.getItem(TRIP_SELECTIONS_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function formatSavedPlacesSection(places) {
+  if (!places?.length) return '';
+
+  const lines = [
+    "TRAVELER'S SAVED PLACES (incorporate these into the itinerary where they fit logically):",
+  ];
+
+  places.forEach((place) => {
+    lines.push(
+      `- ${place.name || 'Unknown place'} (${place.island || 'unknown island'}) — ${place.category || 'Uncategorized'} — ${place.my_note || ''}`,
+    );
+  });
+
+  return lines.join('\n');
+}
+
 function QuizPage() {
+  const location = useLocation();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [rawResult, setRawResult] = useState('');
+  const [savedPlaces, setSavedPlaces] = useState([]);
 
   const [form, setForm] = useState({
     arrivalDate: '',
@@ -120,6 +155,16 @@ function QuizPage() {
   useEffect(() => {
     document.title = 'Plan My Trip – Plan My Hawaii';
   }, []);
+
+  useEffect(() => {
+    const selections = readTripSelections(location.state);
+    setSavedPlaces(selections);
+    try {
+      localStorage.removeItem(TRIP_SELECTIONS_KEY);
+    } catch {
+      // Ignore storage access failures.
+    }
+  }, [location.state]);
 
   const visibleSteps = useMemo(() => {
     const steps = [1, 2, 3];
@@ -329,12 +374,15 @@ function QuizPage() {
       }
     }
 
+    const savedPlacesSection = formatSavedPlacesSection(savedPlaces);
+
     const prompt = `
 You are a knowledgeable local friend helping plan a Hawaii trip.
 
 Please create a warm, specific, opinionated, day-by-day itinerary that feels like it was written by someone who actually lives on the islands. Write in a warm, friendly tone — like a well-traveled friend who knows the islands really well. Casual but not overly local slang. Helpful and specific without being a tour brochure. Include hidden gems, honest takes on what to skip, realistic driving times, and a good balance of activity and rest. 
 Always prioritize locally owned businesses, restaurants, and tours over chains and corporate operators. Never recommend Applebee's, Outback, or any mainland chain that happens to be in Hawaii. If a local option exists, that's the only option worth mentioning. When recommending tours, always choose small local operators over large bus tour companies.
 ${recommendationsSection ? `\n${recommendationsSection}\n` : ''}
+${savedPlacesSection ? `\n${savedPlacesSection}\n` : ''}
 Plan a maximum of 7 days. If the trip is longer than 7 days, plan the first 7 days only and end with a friendly note that says "For the rest of your trip, come back to Plan My Hawaii and we'll plan the next leg for you! 🌺"
 
 Trip details:
@@ -401,6 +449,13 @@ Write this like a friendly local texting a friend. Organize the response clearly
           Seven quick questions. We&apos;ll turn your answers into a realistic, local-feel
           itinerary.
         </p>
+        {savedPlaces.length > 0 && (
+          <div className="pmh-quiz-saved-banner" role="status">
+            🌺 We found {savedPlaces.length}{' '}
+            {savedPlaces.length === 1 ? 'place' : 'places'} you saved! Complete the
+            quiz and we&apos;ll build your itinerary around them.
+          </div>
+        )}
       </div>
 
       <div className="pmh-progress-track">
