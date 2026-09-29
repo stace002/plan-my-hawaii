@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient.js';
 
 const ISLANDS = ['Oahu', 'Maui', 'Big Island', 'Kauai'];
@@ -54,6 +54,42 @@ function firstPhoto(photos) {
 
 function listingHref(listing) {
   return listing.affiliate_url || listing.website_url || '';
+}
+
+function ListingDescription({ text }) {
+  const [expanded, setExpanded] = useState(false);
+  const [canToggle, setCanToggle] = useState(false);
+  const textRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const el = textRef.current;
+    if (!el || expanded) return;
+    setCanToggle(el.scrollHeight > el.clientHeight + 1);
+  }, [text, expanded]);
+
+  if (!text) return null;
+
+  return (
+    <div className="pmh-directory-description-wrap">
+      <p
+        ref={textRef}
+        className={`pmh-directory-description${
+          expanded ? ' pmh-directory-description--expanded' : ''
+        }`}
+      >
+        {text}
+      </p>
+      {canToggle && (
+        <button
+          type="button"
+          className="pmh-directory-read-more"
+          onClick={() => setExpanded((prev) => !prev)}
+        >
+          {expanded ? 'Read less' : 'Read more'}
+        </button>
+      )}
+    </div>
+  );
 }
 
 function DirectoryPage() {
@@ -369,7 +405,7 @@ function DirectoryPage() {
                         </p>
                       )}
                       {listing.description && (
-                        <p className="pmh-directory-description">{listing.description}</p>
+                        <ListingDescription text={listing.description} />
                       )}
                       {listing.my_note && (
                         <p className="pmh-directory-note">🌺 {listing.my_note}</p>
