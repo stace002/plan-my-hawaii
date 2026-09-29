@@ -6,6 +6,7 @@ import QuizPage from './pages/QuizPage.jsx';
 import BlogPage from './pages/BlogPage.jsx';
 import BlogPostPage from './pages/BlogPostPage.jsx';
 import AdminPage from './pages/AdminPage.jsx';
+import DirectoryPage from './pages/DirectoryPage.jsx';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/plan" element={<QuizPage />} />
+            <Route path="/directory" element={<DirectoryPage />} />
             <Route path="/blog" element={<BlogPage />} />
             <Route path="/blog/:slug" element={<BlogPostPage />} />
             <Route path="/admin" element={<AdminPage />} />

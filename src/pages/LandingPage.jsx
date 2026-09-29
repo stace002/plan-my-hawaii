@@ -164,6 +164,18 @@ function LandingPage() {
         </div>
       </section>
 
+      <section className="pmh-section pmh-directory-promo" aria-label="Explore our local directory">
+        <p className="pmh-directory-promo-label">Local Directory</p>
+        <h2 className="pmh-section-title">Hand-picked places by people who live here</h2>
+        <p className="pmh-section-subtitle pmh-directory-promo-copy">
+          Browse our curated guide of restaurants, beaches, hikes, experiences and
+          hidden gems — filtered to match exactly what you&apos;re looking for
+        </p>
+        <Link to="/directory" className="pmh-button-primary">
+          Explore the Directory →
+        </Link>
+      </section>
+
       <section className="pmh-section">
         <div className="pmh-section-header">
           <div>

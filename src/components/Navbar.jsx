@@ -44,6 +44,14 @@ function Navbar() {
             Plan My Trip
           </NavLink>
           <NavLink
+            to="/directory"
+            className={({ isActive }) =>
+              `pmh-nav-link ${isActive ? 'pmh-nav-link--active' : ''}`
+            }
+          >
+            Local Directory
+          </NavLink>
+          <NavLink
             to="/blog"
             className={({ isActive }) =>
               `pmh-nav-link ${isActive ? 'pmh-nav-link--active' : ''}`
@@ -80,6 +88,9 @@ function Navbar() {
               </Link>
               <Link to="/plan" onClick={() => setOpen(false)}>
                 Plan My Trip
+              </Link>
+              <Link to="/directory" onClick={() => setOpen(false)}>
+                Local Directory
               </Link>
               <Link to="/blog" onClick={() => setOpen(false)}>
                 Local Blog

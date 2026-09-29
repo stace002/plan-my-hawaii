@@ -33,6 +33,9 @@ function Footer() {
             <Link className="pmh-footer-link" to="/plan">
               Plan My Trip
             </Link>
+            <Link className="pmh-footer-link" to="/directory">
+              Local Directory
+            </Link>
             <Link className="pmh-footer-link" to="/blog">
               Local Blog
             </Link>
