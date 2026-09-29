@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import MiniDirectory from '../components/MiniDirectory.jsx';
+import { useTripBuilder } from '../components/TripBuilder.jsx';
 import { supabase } from '../lib/supabaseClient.js';
 
 const ISLAND_OPTIONS = ['Oahu', 'Maui', 'Big Island', 'Kauai'];
@@ -93,6 +95,15 @@ function formatRecommendationsSection(recommendations, selectedIslands) {
 }
 
 const TRIP_SELECTIONS_KEY = 'pmh_trip_selections';
+const TRIP_ITEMS_KEY = 'pmh_trip_items';
+
+function clearTripItems() {
+  try {
+    localStorage.removeItem(TRIP_ITEMS_KEY);
+  } catch {
+    // Ignore storage access failures.
+  }
+}
 
 function readTripSelections(locationState) {
   const fromState = locationState?.tripSelections;
@@ -126,11 +137,14 @@ function formatSavedPlacesSection(places) {
 
 function QuizPage() {
   const location = useLocation();
+  const { tripItems, clearTrip } = useTripBuilder();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [rawResult, setRawResult] = useState('');
   const [savedPlaces, setSavedPlaces] = useState([]);
+  const [showMiniDirectory, setShowMiniDirectory] = useState(false);
+  const [miniAddedCount, setMiniAddedCount] = useState(0);
 
   const [form, setForm] = useState({
     arrivalDate: '',
@@ -154,6 +168,11 @@ function QuizPage() {
 
   useEffect(() => {
     document.title = 'Plan My Trip – Plan My Hawaii';
+  }, []);
+
+  useEffect(() => {
+    clearTripItems();
+    clearTrip();
   }, []);
 
   useEffect(() => {
@@ -374,7 +393,16 @@ function QuizPage() {
       }
     }
 
-    const savedPlacesSection = formatSavedPlacesSection(savedPlaces);
+    const placesById = new Map();
+    savedPlaces.forEach((place) => {
+      if (place?.id != null) placesById.set(place.id, place);
+    });
+    tripItems.forEach((place) => {
+      if (place?.id != null) placesById.set(place.id, place);
+    });
+    const savedPlacesSection = formatSavedPlacesSection(
+      Array.from(placesById.values()),
+    );
 
     const prompt = `
 You are a knowledgeable local friend helping plan a Hawaii trip.
@@ -826,6 +854,19 @@ Write this like a friendly local texting a friend. Organize the response clearly
                       setForm((prev) => ({ ...prev, mustDo: e.target.value }))
                     }
                   />
+                  <button
+                    type="button"
+                    className="pmh-button-outline pmh-quiz-browse-btn"
+                    onClick={() => setShowMiniDirectory(true)}
+                  >
+                    🌺 Browse local businesses for inspiration
+                  </button>
+                  {miniAddedCount > 0 && (
+                    <p className="pmh-quiz-mini-confirm" role="status">
+                      ✓ {miniAddedCount}{' '}
+                      {miniAddedCount === 1 ? 'place' : 'places'} added to your trip
+                    </p>
+                  )}
                 </div>
                 <div className="pmh-field">
                   <label htmlFor="notes">Anything else we should know? (optional)</label>
@@ -955,6 +996,16 @@ Write this like a friendly local texting a friend. Organize the response clearly
 </div>
         </section>
       )}
+
+      <MiniDirectory
+        isOpen={showMiniDirectory}
+        onClose={() => {
+          setShowMiniDirectory(false);
+          setSavedPlaces(tripItems);
+          setMiniAddedCount(tripItems.length);
+        }}
+        selectedIslands={form.islands}
+      />
     </div>
   );
 }
