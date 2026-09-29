@@ -96,6 +96,108 @@ function formatRecommendationsSection(recommendations, selectedIslands) {
 
 const TRIP_SELECTIONS_KEY = 'pmh_trip_selections';
 const TRIP_ITEMS_KEY = 'pmh_trip_items';
+const GENERATE_ITINERARY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-itinerary`;
+
+function extractItineraryText(payload) {
+  if (payload == null) return '';
+  if (typeof payload === 'string') return payload.trim();
+  if (typeof payload !== 'object') return '';
+
+  const candidate =
+    payload.result ||
+    payload.itinerary ||
+    payload.text ||
+    payload.content ||
+    payload.message ||
+    payload.output ||
+    payload.delta;
+
+  if (typeof candidate === 'string') return candidate.trim();
+  if (Array.isArray(candidate)) {
+    return candidate
+      .map((part) => (typeof part === 'string' ? part : part?.text || ''))
+      .join('')
+      .trim();
+  }
+  if (candidate && typeof candidate === 'object') {
+    return extractItineraryText(candidate);
+  }
+  if (payload.data) return extractItineraryText(payload.data);
+  return '';
+}
+
+async function requestGeneratedItinerary(prompt) {
+  console.log('Calling edge function...');
+  const response = await fetch(GENERATE_ITINERARY_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify({ prompt }),
+  });
+
+  if (!response.ok) {
+    let message = 'Could not generate itinerary. Please try again.';
+    try {
+      const errBody = await response.json();
+      console.log('Edge function response:', errBody);
+      console.log('Result field:', errBody.result);
+      message = errBody.error || errBody.message || message;
+    } catch {
+      // Keep the default message.
+    }
+    throw new Error(message);
+  }
+
+  const contentType = response.headers.get('content-type') || '';
+
+  if (contentType.includes('text/event-stream') && response.body) {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let itinerary = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split('\n\n');
+      buffer = events.pop() || '';
+      events.forEach((event) => {
+        const dataLine = event
+          .split('\n')
+          .find((line) => line.startsWith('data:'));
+        if (!dataLine) return;
+        const data = dataLine.replace(/^data:\s?/, '').trim();
+        if (!data || data === '[DONE]') return;
+        try {
+          itinerary += extractItineraryText(JSON.parse(data));
+        } catch {
+          itinerary += data;
+        }
+      });
+    }
+
+    return itinerary.trim();
+  }
+
+  const raw = await response.text();
+  try {
+    const data = JSON.parse(raw);
+    console.log('Edge function response:', data);
+    console.log('Result field:', data.result);
+    const extracted = extractItineraryText(data);
+    if (extracted) return extracted;
+    throw new Error(
+      data.error ||
+        'The itinerary generator did not return any text. Please try again.',
+    );
+  } catch (err) {
+    if (err instanceof SyntaxError) return raw.trim();
+    throw err;
+  }
+}
 
 function clearTripItems() {
   try {
@@ -141,7 +243,14 @@ function QuizPage() {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
-  const [rawResult, setRawResult] = useState('');
+  const [itineraryText, setItineraryText] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [showTweak, setShowTweak] = useState(false);
+  const [tweakFeedback, setTweakFeedback] = useState('');
+  const [showSend, setShowSend] = useState(false);
+  const [sendEmail, setSendEmail] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
   const [savedPlaces, setSavedPlaces] = useState([]);
   const [showMiniDirectory, setShowMiniDirectory] = useState(false);
   const [miniAddedCount, setMiniAddedCount] = useState(0);
@@ -163,7 +272,6 @@ function QuizPage() {
     mobility: '',
     mustDo: '',
     notes: '',
-    email: '',
   });
 
   useEffect(() => {
@@ -344,7 +452,7 @@ function QuizPage() {
     let current = null;
 
     lines.forEach((line) => {
-      const dayMatch = line.match(/^(day\s*\d+[:\-]?\s*)(.*)$/i);
+      const dayMatch = line.match(/^(?:#{1,3}\s*|\*\*)?(day\s*\d+)\b(.*)$/i);
       if (dayMatch) {
         if (current) days.push(current);
         current = {
@@ -368,17 +476,14 @@ function QuizPage() {
   };
 
   const itineraryDays = useMemo(
-    () => (rawResult ? parseItinerary(rawResult) : []),
-    [rawResult],
+    () => (itineraryText ? parseItinerary(itineraryText) : []),
+    [itineraryText],
   );
 
-  const handleSubmit = async () => {
-    console.log('Submit started', form);
-    setError(null);
-
+  const buildPrompt = async (feedback) => {
     let recommendationsSection = '';
     if (form.islands.length > 0) {
-      const { data, error } = await supabase
+      const { data, error: recError } = await supabase
         .from('recommendations')
         .select('name, island, category, my_note, google_maps_url')
         .eq('active', true)
@@ -386,8 +491,8 @@ function QuizPage() {
         .order('island', { ascending: true })
         .order('category', { ascending: true });
 
-      if (error) {
-        console.log('Recommendations fetch error:', error);
+      if (recError) {
+        console.log('Recommendations fetch error:', recError);
       } else {
         recommendationsSection = formatRecommendationsSection(data ?? [], form.islands);
       }
@@ -404,7 +509,7 @@ function QuizPage() {
       Array.from(placesById.values()),
     );
 
-    const prompt = `
+    return `
 You are a knowledgeable local friend helping plan a Hawaii trip.
 
 Please create a warm, specific, opinionated, day-by-day itinerary that feels like it was written by someone who actually lives on the islands. Write in a warm, friendly tone — like a well-traveled friend who knows the islands really well. Casual but not overly local slang. Helpful and specific without being a tour brochure. Include hidden gems, honest takes on what to skip, realistic driving times, and a good balance of activity and rest. 
@@ -428,56 +533,88 @@ ${form.islands.length > 1 ? `- Island day split: ${form.islands.map((island) => 
 - Mobility / pacing notes: ${form.mobility || 'none'}
 - Must-do items: ${form.mustDo || 'none'}
 - Extra notes: ${form.notes || 'none'}
+${feedback ? `\nTRAVELER FEEDBACK ON THE CURRENT ITINERARY:\n${feedback}\n\nCURRENT ITINERARY:\n${itineraryText}\n\nRewrite the full itinerary incorporating that feedback. Keep the same warm, day-by-day structure.\n` : ''}
 
 Write this like a friendly local texting a friend. Organize the response clearly by day (e.g. "Day 1 – Settle in + golden hour on the beach") with short bullet points for morning / afternoon / evening. Keep each day realistic, not overstuffed.
 `;
-
-    const { email, ...tripDetails } = form;
-
-    void supabase
-      .from('itineraries')
-      .insert({
-        email,
-        status: 'pending',
-        trip_details: tripDetails,
-      })
-      .then(({ error: insertError }) => {
-        if (insertError) {
-          console.log('Insert error:', insertError);
-          return;
-        }
-
-        console.log('Sending to edge function...');
-        fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-itinerary`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            },
-            body: JSON.stringify({ prompt, email, tripDetails }),
-          },
-        ).catch((e) => {
-          console.log('Error details:', e);
-        });
-      });
-
-    setRawResult('sent');
-    setSubmitting(false);
   };
 
-  const showResults = !submitting && rawResult;
+  const generateItinerary = async (feedback) => {
+    setError(null);
+    setSubmitting(true);
+    setIsEditing(false);
+    setShowTweak(false);
+    setShowSend(false);
+
+    try {
+      const prompt = await buildPrompt(feedback);
+      const text = await requestGeneratedItinerary(prompt);
+      if (!text) {
+        throw new Error('The itinerary came back empty. Please try again.');
+      }
+      setItineraryText(text);
+      setSent(false);
+    } catch (err) {
+      setError(err.message || 'Could not generate itinerary. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    await generateItinerary('');
+  };
+
+  const handleTweak = async (event) => {
+    event.preventDefault();
+    const feedback = tweakFeedback.trim();
+    if (!feedback) return;
+    setTweakFeedback('');
+    await generateItinerary(feedback);
+  };
+
+  const handleSend = async (event) => {
+    event.preventDefault();
+    const email = sendEmail.trim();
+    if (!email) {
+      setError('Please enter an email address.');
+      return;
+    }
+
+    setSending(true);
+    setError(null);
+
+    const { error: insertError } = await supabase.from('itineraries').insert({
+      email,
+      status: 'pending',
+      itinerary: itineraryText,
+      trip_details: form,
+    });
+
+    setSending(false);
+
+    if (insertError) {
+      setError(insertError.message);
+      return;
+    }
+
+    setSent(true);
+    setShowSend(false);
+  };
+
+  const showQuiz = !submitting && !itineraryText;
+  const showPreview = !submitting && Boolean(itineraryText);
 
   return (
     <div className="pmh-quiz-layout">
+      {(showQuiz || submitting) && (
       <div className="pmh-quiz-header">
         <h1 className="pmh-quiz-title">Let&apos;s plan your Hawaii trip</h1>
         <p className="pmh-quiz-subtitle">
           Seven quick questions. We&apos;ll turn your answers into a realistic, local-feel
           itinerary.
         </p>
-        {savedPlaces.length > 0 && (
+        {showQuiz && savedPlaces.length > 0 && (
           <div className="pmh-quiz-saved-banner" role="status">
             🌺 We found {savedPlaces.length}{' '}
             {savedPlaces.length === 1 ? 'place' : 'places'} you saved! Complete the
@@ -485,7 +622,10 @@ Write this like a friendly local texting a friend. Organize the response clearly
           </div>
         )}
       </div>
+      )}
 
+      {showQuiz && (
+        <>
       <div className="pmh-progress-track">
         <div
           className="pmh-progress-fill"
@@ -500,7 +640,6 @@ Write this like a friendly local texting a friend. Organize the response clearly
         <span>{progress}%</span>
       </div>
 
-      {!showResults && (
         <section className="pmh-quiz-card" aria-live="polite">
           {step === 1 && (
             <>
@@ -879,22 +1018,6 @@ Write this like a friendly local texting a friend. Organize the response clearly
                     }
                   />
                 </div>
-                <div className="pmh-field">
-                  <label htmlFor="email">
-                    Where should we send your itinerary?{' '}
-                    <span style={{ color: '#0d7c5c' }}>*</span>
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    className="pmh-input"
-                    placeholder="your@email.com"
-                    value={form.email}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, email: e.target.value }))
-                    }
-                  />
-                </div>
               </div>
             </>
           )}
@@ -934,66 +1057,132 @@ Write this like a friendly local texting a friend. Organize the response clearly
             </div>
           </div>
         </section>
+        </>
       )}
 
       {submitting && (
-        <div className="pmh-loading-screen">
-          <h2>Cooking up something good…</h2>
-          <p>
-            We&apos;re writing your itinerary like a local friend would — this usually
-            takes a few moments.
-          </p>
-          <div className="pmh-loading-dots" aria-hidden="true">
-            <span />
-            <span />
-            <span />
+        <div className="pmh-loading-screen" role="status">
+          <div className="pmh-loading-hibiscus" aria-hidden="true">
+            🌺
           </div>
+          <h2>Building your Hawaii itinerary...</h2>
+          <p>We&apos;re writing this like a local friend would. Hang tight.</p>
         </div>
       )}
 
-      {showResults && (
-        <section className="pmh-section" aria-live="polite">
-          <div className="pmh-section-header">
-            <div>
-              <h2 className="pmh-section-title">Your Hawaii itinerary</h2>
-              <p className="pmh-section-subtitle">
-                Read through, tweak anything you like, and drop it into your notes app or
-                share with your crew.
-              </p>
+      {showPreview && (
+        <section className="pmh-itinerary-preview" aria-live="polite">
+          <header className="pmh-itinerary-preview-header">
+            <h2>🌺 Your Hawaii Itinerary</h2>
+          </header>
+
+          {isEditing ? (
+            <textarea
+              className="pmh-textarea pmh-itinerary-edit"
+              value={itineraryText}
+              onChange={(e) => setItineraryText(e.target.value)}
+              aria-label="Edit itinerary"
+            />
+          ) : (
+            <div className="pmh-itinerary-days">
+              {itineraryDays.map((day) => (
+                <article key={day.title} className="pmh-day-card">
+                  <h3>{day.title}</h3>
+                  {day.items.length > 0 && (
+                    <ul>
+                      {day.items.map((item, index) => (
+                        <li key={`${day.title}-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                  )}
+                </article>
+              ))}
             </div>
+          )}
+
+          <div className="pmh-itinerary-actions">
+            <button
+              type="button"
+              className="pmh-button-outline"
+              onClick={() => {
+                setIsEditing((prev) => !prev);
+                setShowTweak(false);
+                setShowSend(false);
+              }}
+            >
+              {isEditing ? 'Done editing' : '✏️ Edit This'}
+            </button>
+            <button
+              type="button"
+              className="pmh-button-outline"
+              onClick={() => {
+                setShowTweak((prev) => !prev);
+                setIsEditing(false);
+                setShowSend(false);
+              }}
+            >
+              🔄 Tweak This
+            </button>
+            <button
+              type="button"
+              className="pmh-button-primary"
+              onClick={() => {
+                setShowSend((prev) => !prev);
+                setIsEditing(false);
+                setShowTweak(false);
+              }}
+            >
+              📧 Send to My Inbox
+            </button>
           </div>
-          <div style={{
-  textAlign: 'center',
-  padding: '3rem 1.5rem',
-  maxWidth: 480,
-  margin: '0 auto',
-}}>
-  <div style={{ fontSize: 56, marginBottom: '1rem' }}>🌺</div>
-  <h2 style={{
-    fontFamily: 'Georgia, serif',
-    fontSize: 26,
-    color: '#0a3d2b',
-    marginBottom: '0.75rem',
-  }}>
-    Your itinerary is on its way!
-  </h2>
-  <p style={{
-    fontFamily: 'sans-serif',
-    fontSize: 16,
-    color: '#4a7a65',
-    lineHeight: 1.7,
-    marginBottom: '2rem',
-  }}>
-    We're putting your personalized Hawaii plan together right now. Check your inbox in the next few days — it'll be worth the wait. 🤙
-  </p>
-  <p style={{
-    fontFamily: 'sans-serif',
-    fontSize: 13,
-    color: '#aaa',
-  }}>
-    Sent to {form.email}
-  </p>
-</div>
+
+          {showTweak && (
+            <form className="pmh-itinerary-panel" onSubmit={handleTweak}>
+              <label htmlFor="tweak-feedback">What should we change?</label>
+              <input
+                id="tweak-feedback"
+                className="pmh-input"
+                value={tweakFeedback}
+                onChange={(e) => setTweakFeedback(e.target.value)}
+                placeholder="add more beach time"
+              />
+              <button type="submit" className="pmh-button-primary" disabled={!tweakFeedback.trim()}>
+                Regenerate
+              </button>
+            </form>
+          )}
+
+          {showSend && !sent && (
+            <form className="pmh-itinerary-panel" onSubmit={handleSend}>
+              <label htmlFor="send-email">Where should we send this?</label>
+              <div className="pmh-itinerary-send-row">
+                <input
+                  id="send-email"
+                  type="email"
+                  className="pmh-input"
+                  placeholder="your@email.com"
+                  value={sendEmail}
+                  onChange={(e) => setSendEmail(e.target.value)}
+                  required
+                />
+                <button type="submit" className="pmh-button-primary" disabled={sending}>
+                  {sending ? 'Sending…' : 'Send 🌺'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {sent && (
+            <p className="pmh-itinerary-sent" role="status">
+              Check your inbox! Your itinerary is on its way 🌺
+            </p>
+          )}
+
+          {error && (
+            <div className="pmh-auth-error" role="alert">
+              {error}
+            </div>
+          )}
         </section>
       )}
 

@@ -670,11 +670,124 @@ button {
 
 .pmh-loading-screen {
   margin-top: 2rem;
-  padding: 1.8rem 1.5rem;
+  padding: 2.4rem 1.5rem 2.2rem;
   border-radius: 20px;
   border: 1px solid var(--green-border);
   background: radial-gradient(circle at top, #e0f5ec 0, #ffffff 55%);
   text-align: center;
+}
+
+.pmh-loading-screen h2 {
+  margin: 0.85rem 0 0.4rem;
+  font-family: 'Lora', 'Times New Roman', serif;
+  color: var(--green-dark);
+}
+
+.pmh-loading-screen p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.pmh-loading-hibiscus {
+  font-size: 3.4rem;
+  line-height: 1;
+  display: inline-block;
+  animation: pmh-hibiscus-sway 1.4s ease-in-out infinite;
+}
+
+@keyframes pmh-hibiscus-sway {
+  0%,
+  100% {
+    transform: rotate(-14deg) scale(0.96);
+  }
+  50% {
+    transform: rotate(14deg) scale(1.08);
+  }
+}
+
+.pmh-itinerary-preview {
+  margin-top: 0.5rem;
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid var(--green-border);
+  background: #ffffff;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+}
+
+.pmh-itinerary-preview-header {
+  padding: 1.15rem 1.3rem;
+  background: linear-gradient(135deg, #0d7c5c, #0a3d2b);
+  color: #ffffff;
+}
+
+.pmh-itinerary-preview-header h2 {
+  margin: 0;
+  font-family: 'Lora', 'Times New Roman', serif;
+  font-size: 1.45rem;
+}
+
+.pmh-itinerary-days {
+  display: grid;
+  gap: 1rem;
+  padding: 1.2rem 1.2rem 0.4rem;
+}
+
+.pmh-itinerary-edit {
+  display: block;
+  width: calc(100% - 2.4rem);
+  min-height: 28rem;
+  margin: 1.2rem;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.pmh-itinerary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  padding: 1.15rem 1.2rem 1.25rem;
+}
+
+.pmh-itinerary-actions .pmh-button-outline {
+  border-color: #0d7c5c;
+  color: #0d7c5c;
+  background: #ffffff;
+}
+
+.pmh-itinerary-panel {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0 1.2rem 1.25rem;
+}
+
+.pmh-itinerary-panel label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--green-dark);
+}
+
+.pmh-itinerary-send-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.pmh-itinerary-send-row .pmh-input {
+  flex: 1 1 220px;
+}
+
+.pmh-itinerary-sent {
+  margin: 0 1.2rem 1.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(13, 124, 92, 0.28);
+  background: rgba(13, 124, 92, 0.1);
+  color: var(--green-dark);
+  font-weight: 600;
+}
+
+.pmh-itinerary-preview .pmh-auth-error {
+  margin: 0 1.2rem 1.25rem;
 }
 
 .pmh-loading-dots {
