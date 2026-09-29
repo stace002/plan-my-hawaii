@@ -97,6 +97,7 @@ function formatRecommendationsSection(recommendations, selectedIslands) {
 const TRIP_SELECTIONS_KEY = 'pmh_trip_selections';
 const TRIP_ITEMS_KEY = 'pmh_trip_items';
 const GENERATE_ITINERARY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-itinerary`;
+const SEND_ITINERARY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send_itinerary`;
 
 function extractItineraryText(payload) {
   if (payload == null) return '';
@@ -584,22 +585,38 @@ Write this like a friendly local texting a friend. Organize the response clearly
     setSending(true);
     setError(null);
 
-    const { error: insertError } = await supabase.from('itineraries').insert({
-      email,
-      status: 'pending',
-      itinerary: itineraryText,
-      trip_details: form,
-    });
+    try {
+      const sendRes = await fetch(SEND_ITINERARY_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ email, itinerary: itineraryText }),
+      });
 
-    setSending(false);
+      if (!sendRes.ok) {
+        throw new Error('Failed to send itinerary email.');
+      }
 
-    if (insertError) {
-      setError(insertError.message);
-      return;
+      const { error: insertError } = await supabase.from('itineraries').insert({
+        email,
+        status: 'sent',
+        itinerary: itineraryText,
+        trip_details: form,
+      });
+
+      if (insertError) {
+        throw new Error(insertError.message);
+      }
+
+      setSent(true);
+      setShowSend(false);
+    } catch (err) {
+      setError(err.message || 'Could not send itinerary. Please try again.');
+    } finally {
+      setSending(false);
     }
-
-    setSent(true);
-    setShowSend(false);
   };
 
   const showQuiz = !submitting && !itineraryText;
@@ -1174,7 +1191,7 @@ Write this like a friendly local texting a friend. Organize the response clearly
 
           {sent && (
             <p className="pmh-itinerary-sent" role="status">
-              Check your inbox! Your itinerary is on its way 🌺
+              Your itinerary is on its way! Check your inbox 🌺
             </p>
           )}
 
