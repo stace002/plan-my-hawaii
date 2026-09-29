@@ -513,7 +513,7 @@ function QuizPage() {
     return `
 You are a knowledgeable local friend helping plan a Hawaii trip.
 
-Please create a warm, specific, opinionated, day-by-day itinerary that feels like it was written by someone who actually lives on the islands. Write in a warm, friendly tone — like a well-traveled friend who knows the islands really well. Casual but not overly local slang. Helpful and specific without being a tour brochure. Include hidden gems, honest takes on what to skip, realistic driving times, and a good balance of activity and rest. 
+Please create a warm, specific, opinionated, day-by-day itinerary that feels like it was written by someone who actually lives on the islands. Write in a confident, knowledgeable local voice — like a well-traveled friend who knows Hawaii deeply and gives straight, genuine advice. Warm but not overly enthusiastic. No valley girl language, no excessive use of 'like', no cringe-worthy phrases like 'Oh my gosh you're going to LOVE this!' or 'This is literally the best thing ever!'. Just honest, specific, helpful recommendations delivered with quiet confidence. Think less Instagram influencer, more trusted local who's seen it all and knows exactly what's worth your time. Include hidden gems, honest takes on what to skip, realistic driving times, and a good balance of activity and rest. 
 Always prioritize locally owned businesses, restaurants, and tours over chains and corporate operators. Never recommend Applebee's, Outback, or any mainland chain that happens to be in Hawaii. If a local option exists, that's the only option worth mentioning. When recommending tours, always choose small local operators over large bus tour companies.
 ${recommendationsSection ? `\n${recommendationsSection}\n` : ''}
 ${savedPlacesSection ? `\n${savedPlacesSection}\n` : ''}
@@ -536,7 +536,7 @@ ${form.islands.length > 1 ? `- Island day split: ${form.islands.map((island) => 
 - Extra notes: ${form.notes || 'none'}
 ${feedback ? `\nTRAVELER FEEDBACK ON THE CURRENT ITINERARY:\n${feedback}\n\nCURRENT ITINERARY:\n${itineraryText}\n\nRewrite the full itinerary incorporating that feedback. Keep the same warm, day-by-day structure.\n` : ''}
 
-Write this like a friendly local texting a friend. Organize the response clearly by day (e.g. "Day 1 – Settle in + golden hour on the beach") with short bullet points for morning / afternoon / evening. Keep each day realistic, not overstuffed.
+Organize the response clearly by day (e.g. "Day 1 – Settle in + golden hour on the beach") with short bullet points for morning / afternoon / evening. Keep each day realistic, not overstuffed.
 `;
   };
 
